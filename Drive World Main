@@ -492,7 +492,7 @@ end)
 
 
 
-
+--[[
 -- Auto Contracts
 local example = library:CreateWindow({
     text = "Auto Contracts"
@@ -535,7 +535,7 @@ example:AddToggle("Auto Complete Contract", function(state)
         warn("Completed")
     end
 end)
-
+--]]
 
 
 
