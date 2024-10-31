@@ -1,7 +1,7 @@
 -- Anti Afk
-warn("Anti afk running")
+warn("Anti Afk is On")
 game:GetService("Players").LocalPlayer.Idled:connect(function()
-    warn("Anti afk ran")
+    warn("Anti Afk ran")
     game:GetService("VirtualUser"):CaptureController()
     game:GetService("VirtualUser"):ClickButton2(Vector2.new())
 end)
@@ -20,6 +20,8 @@ return;
 	return namecall(self, ...) 
 end)
 getfenv().grav = workspace.Gravity
+
+-- UI
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/ItzVickyyy/Scrpts/refs/heads/main/UI"))()
 
 
@@ -557,7 +559,7 @@ example:AddBox("Enter Vehicle Speed", function(object, focus)
     end
 end)
 
-example:AddToggle("Auto Farm [Race XP]", function(state)
+example:AddToggle("Auto Farm XP", function(state)
     getfenv().xprace = (state and true or false)
 
     local function getrace()
