@@ -31,6 +31,11 @@ local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/ItzVi
 
 
 
+
+
+
+
+
 -- Auto Drive
 local example = library:CreateWindow({
     text = "Auto Drive"
@@ -504,170 +509,203 @@ end)
 
 -- Contracts
 local example = library:CreateWindow({
-   text = "Contracts"
- })
- local function getcontracts()
-  local contracts = {}
-  for i,v in pairs(workspace.Contracts:GetChildren()) do
-   table.insert(contracts,v.Name)
-  end
-  return contracts
-end
- example:AddDropdown(getcontracts(),function(state)
-   print(state)
-getfenv().contract = state
- end)
- example:AddToggle("Auto Complete Contract", function(state)
-   getfenv().contracta = (state and true or false)
-while getfenv().contracta do
-   wait(3)
-   local plr =game:GetService("Players").LocalPlayer
-   local data = game:GetService("ReplicatedStorage").PlayerData[plr.Name]
-   local wood = data.Wood.Value
-   local steel = data.Steel.Value
-   warn("Wood Amount: "..wood)
-   warn("Steel Amount: "..steel)
-game:GetService("ReplicatedStorage").Systems.Contracts.PrecalculateRoutes:InvokeServer()
-   wait(2)
-   game:GetService("ReplicatedStorage").Systems.Contracts.StartContract:InvokeServer(getfenv().contract)
-   print("Contract Started")
-   wait(10)
-   game:GetService("ReplicatedStorage").Systems.Contracts.PickupCargo:InvokeServer()
-   print("Got Cargo")
-   wait(65)
-   game:GetService("ReplicatedStorage").Systems.Contracts.DropoffCargo:InvokeServer()
-   warn("Completed")
-end
- end)
-local example = library:CreateWindow({
-   text = "Race Stuff"
- })
- example:AddBox("Enter Vehicle Speed", function(object, focus)
-	if focus then
-		getfenv().speed = tonumber(object.Text)
-	end
-end)
- example:AddToggle("Auto Farm [Race XP]", function(state)
-   getfenv().xprace = (state and true or false)
-   local function getrace()
-      local plr = game.Players.LocalPlayer
-      local data = game:GetService("ReplicatedStorage").PlayerData[plr.Name]
-      local race = nil
-      for i,v in pairs(data.Tasks.Challenges.List:GetChildren()) do
-      if v.ClassName == "Folder" and v:GetAttribute("AvailableTime") ~= nil and v:GetAttribute("AvailableTime")-workspace:GetServerTimeNow() <= 0 and v:GetAttribute("ExpireTime")-workspace:GetServerTimeNow() > 0 then
-         local time = v:GetAttribute("AvailableTime")-workspace:GetServerTimeNow()
-      local expire = v:GetAttribute("ExpireTime")-workspace:GetServerTimeNow()
-      race = v.Name
-      end
-      end
-      return race
-      end
-   spawn(function()
-while getfenv().xprace do
-task.wait()
-if game:GetService("Players").LocalPlayer.PlayerGui.Score.Frame.Race.Visible == true and getfenv().lookat ~= nil then
-local speed = getfenv().speed or 250
+    text = "Auto Contracts"
+})
 
-local plr = game.Players.LocalPlayer
-local chr = plr.Character
-local car = chr.Humanoid.SeatPart.Parent.Parent
-local carp = car.PrimaryPart
-carp.Velocity = getfenv().lookat.CFrame.LookVector*speed
+local function getcontracts()
+    local contracts = {}
+    for i, v in pairs(workspace.Contracts:GetChildren()) do
+        table.insert(contracts, v.Name)
+    end
+    return contracts
 end
-end
-   end)
-   while getfenv().xprace do
-      wait()
-game:GetService("ReplicatedStorage").Systems.Races.StartTaskChallengeRace:FireServer("GoldRushCrown")
- repeat wait()
-   until game:GetService("Players").LocalPlayer.PlayerGui.Score.Frame.Race.Visible == true or getfenv().xprace == false
-   local plr = game.Players.LocalPlayer
-   local chr = plr.Character
-   local car = chr.Humanoid.SeatPart.Parent.Parent
-   local carp = car.PrimaryPart
-   repeat task.wait()
-      local test = nil
-      for i,v in pairs(workspace.Races:GetDescendants()) do
-         if v.ClassName == "Model"  and v:FindFirstChild("Forcefield") and v:FindFirstChild("Forcefield").Transparency ~= 1  then
-            local speed = getfenv().speed or 250
-            getfenv().lookat = v:FindFirstChild("Forcefield")
+
+example:AddDropdown(getcontracts(), function(state)
+    print(state)
+    getfenv().contract = state
+end)
+
+example:AddToggle("Auto Complete Contract", function(state)
+    getfenv().contracta = (state and true or false)
+
+    while getfenv().contracta do
+        wait(3)
+        local plr =game:GetService("Players").LocalPlayer
+        local data = game:GetService("ReplicatedStorage").PlayerData[plr.Name]
+        local wood = data.Wood.Value
+        local steel = data.Steel.Value
+        warn("Wood Amount: "..wood)
+        warn("Steel Amount: "..steel)
+
+        game:GetService("ReplicatedStorage").Systems.Contracts.PrecalculateRoutes:InvokeServer()
+        wait(2)
+        game:GetService("ReplicatedStorage").Systems.Contracts.StartContract:InvokeServer(getfenv().contract)
+        print("Contract Started")
+        wait(10)
+        game:GetService("ReplicatedStorage").Systems.Contracts.PickupCargo:InvokeServer()
+        print("Got Cargo")
+        wait(65)
+        game:GetService("ReplicatedStorage").Systems.Contracts.DropoffCargo:InvokeServer()
+        warn("Completed")
+    end
+end)
+
+
+
+
+
+
+
+
+
+
+-- Auto Race
+local example = library:CreateWindow({
+    text = "Auto Race"
+})
+
+example:AddBox("Enter Vehicle Speed", function(object, focus)
+    if focus then
+        getfenv().speed = tonumber(object.Text)
+    end
+end)
+
+-- Auto Farm XP Section
+example:AddToggle("Auto Farm XP", function(state)
+    getfenv().xprace = (state and true or false)
+
+    local function getrace()
+        local plr = game.Players.LocalPlayer
+        local data = game:GetService("ReplicatedStorage").PlayerData[plr.Name]
+        local race = nil
+
+        for i,v in pairs(data.Tasks.Challenges.List:GetChildren()) do
+            if v.ClassName == "Folder" and v:GetAttribute("AvailableTime") ~= nil and v:GetAttribute("AvailableTime")-workspace:GetServerTimeNow() <= 0 and v:GetAttribute("ExpireTime")-workspace:GetServerTimeNow() > 0 then
+                local time = v:GetAttribute("AvailableTime")-workspace:GetServerTimeNow()
+                local expire = v:GetAttribute("ExpireTime")-workspace:GetServerTimeNow()
+                race = v.Name
+            end
+        end
+        return race
+    end
+
+    spawn(function()
+        while getfenv().xprace do
+            task.wait()
+            if game:GetService("Players").LocalPlayer.PlayerGui.Score.Frame.Race.Visible == true and getfenv().lookat ~= nil then
+                local speed = getfenv().speed or 250
+                local plr = game.Players.LocalPlayer
+                local chr = plr.Character
+                local car = chr.Humanoid.SeatPart.Parent.Parent
+                local carp = car.PrimaryPart
+                carp.Velocity = getfenv().lookat.CFrame.LookVector*speed
+            end
+        end
+    end)
+
+
+    while getfenv().xprace do
+        wait()
+        game:GetService("ReplicatedStorage").Systems.Races.StartTaskChallengeRace:FireServer("GoldRushCrown")
+    
+        repeat wait()
+        until game:GetService("Players").LocalPlayer.PlayerGui.Score.Frame.Race.Visible == true or getfenv().xprace == false
+
+        local plr = game.Players.LocalPlayer
+        local chr = plr.Character
+        local car = chr.Humanoid.SeatPart.Parent.Parent
+        local carp = car.PrimaryPart
+
+        repeat task.wait()
+            local test = nil
+            
+            for i,v in pairs(workspace.Races:GetDescendants()) do
+                if v.ClassName == "Model"  and v:FindFirstChild("Forcefield") and v:FindFirstChild("Forcefield").Transparency ~= 1  then
+                    local speed = getfenv().speed or 250
+                    getfenv().lookat = v:FindFirstChild("Forcefield")
+                    local plr = game.Players.LocalPlayer
+                    local chr = plr.Character
+                    local car = chr.Humanoid.SeatPart.Parent.Parent
+                    local carp = car.PrimaryPart
+                    local location = v:FindFirstChild("Forcefield").Position
+                    local dist = (carp.Position-location).magnitude
+                    print(dist/speed)
+                    local TweenService = game:GetService("TweenService")
+                    local TweenInfoToUse = TweenInfo.new(dist/speed, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 0, false, 0)
+                    
+                    local TweenValue = Instance.new("CFrameValue")
+                    TweenValue.Value = car:GetPrimaryPartCFrame()
+                            
+                    TweenValue.Changed:Connect(function()
+                    car:PivotTo(TweenValue.Value)
+                    end)
+                    
+                    local OnTween = TweenService:Create(TweenValue, TweenInfoToUse, {Value= CFrame.new(location)})
+                    OnTween:Play()
+                    OnTween.Completed:Wait()
+                end
+            end
+        until game:GetService("Players").LocalPlayer.PlayerGui.Score.Frame.Race.Visible == false or getfenv().xprace == false or test == nil
+        carp.Velocity = Vector3.new(0,0,0)
+    end
+end)
+
+-- Auto Finish Race Section
+example:AddToggle("Auto Finish Race", function(state)
+   getfenv().urace = (state and true or false)
+
+   spawn(function()
+        while getfenv().urace do
+            task.wait()
+                if game:GetService("Players").LocalPlayer.PlayerGui.Score.Frame.Race.Visible == true and getfenv().lookat ~= nil then
+                    local speed = getfenv().speed or 250
+                    
+                    local plr = game.Players.LocalPlayer
+                    local chr = plr.Character
+                    local car = chr.Humanoid.SeatPart.Parent.Parent
+                    local carp = car.PrimaryPart
+                    carp.Velocity = getfenv().lookat.CFrame.LookVector*speed
+                end
+            end
+        end)
+        
+        while getfenv().urace do
+        wait()
+        if game:GetService("Players").LocalPlayer.PlayerGui.Score.Frame.Race.Visible == true then
+            wait()
             local plr = game.Players.LocalPlayer
             local chr = plr.Character
             local car = chr.Humanoid.SeatPart.Parent.Parent
             local carp = car.PrimaryPart
-            local location = v:FindFirstChild("Forcefield").Position
-            local dist = (carp.Position-location).magnitude
-            print(dist/speed)
-            local TweenService = game:GetService("TweenService")
-            local TweenInfoToUse = TweenInfo.new(dist/speed, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 0, false, 0)
-            
-            local TweenValue = Instance.new("CFrameValue")
-            TweenValue.Value = car:GetPrimaryPartCFrame()
-                    
-            TweenValue.Changed:Connect(function()
-            car:PivotTo(TweenValue.Value)
-            end)
-            local OnTween = TweenService:Create(TweenValue, TweenInfoToUse, {Value= CFrame.new(location)})
-            OnTween:Play()
-            OnTween.Completed:Wait()
-      end
-      end
-      until game:GetService("Players").LocalPlayer.PlayerGui.Score.Frame.Race.Visible == false or getfenv().xprace == false or test == nil
-      carp.Velocity = Vector3.new(0,0,0)
-   end
-end)
-example:AddToggle("Auto Finish Race", function(state)
-   getfenv().urace = (state and true or false)
-   spawn(function()
-      while getfenv().urace do
-      task.wait()
-      if game:GetService("Players").LocalPlayer.PlayerGui.Score.Frame.Race.Visible == true and getfenv().lookat ~= nil then
-      local speed = getfenv().speed or 250
-      
-      local plr = game.Players.LocalPlayer
-      local chr = plr.Character
-      local car = chr.Humanoid.SeatPart.Parent.Parent
-      local carp = car.PrimaryPart
-      carp.Velocity = getfenv().lookat.CFrame.LookVector*speed
-      end
-      end
-         end)
-   while getfenv().urace do
-      wait()
-  if game:GetService("Players").LocalPlayer.PlayerGui.Score.Frame.Race.Visible == true then
-   wait()
-   local plr = game.Players.LocalPlayer
-   local chr = plr.Character
-   local car = chr.Humanoid.SeatPart.Parent.Parent
-   local carp = car.PrimaryPart
-   repeat task.wait()
-      local test = nil
-   for i,v in pairs(workspace.Races:GetDescendants()) do
-      if v.ClassName == "Model"  and v:FindFirstChild("Forcefield") and v:FindFirstChild("Forcefield").Transparency ~= 1  then
-         getfenv().lookat = v:FindFirstChild("Forcefield")
-         local speed = getfenv().speed or 250
-         local plr = game.Players.LocalPlayer
-         local chr = plr.Character
-         local car = chr.Humanoid.SeatPart.Parent.Parent
-         local carp = car.PrimaryPart
-         local location = v:FindFirstChild("Forcefield").Position
-         local dist = (carp.Position-location).magnitude
-         print(dist/speed)
-         local TweenService = game:GetService("TweenService")
-         local TweenInfoToUse = TweenInfo.new(dist/speed, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 0, false, 0)
 
-         local TweenValue = Instance.new("CFrameValue")
-         TweenValue.Value = car:GetPrimaryPartCFrame()
-         TweenValue.Changed:Connect(function()
-         car:PivotTo(TweenValue.Value)
-         end)
-         local OnTween = TweenService:Create(TweenValue, TweenInfoToUse, {Value= CFrame.new(location)})
-         OnTween:Play()
-         OnTween.Completed:Wait()
-   end
-   end
-   until game:GetService("Players").LocalPlayer.PlayerGui.Score.Frame.Race.Visible == false or getfenv().urace == false or test == nil
-   carp.Velocity = Vector3.new(0,0,0)
-end
-   end
+            repeat task.wait()
+                local test = nil
+            for i,v in pairs(workspace.Races:GetDescendants()) do
+                if v.ClassName == "Model"  and v:FindFirstChild("Forcefield") and v:FindFirstChild("Forcefield").Transparency ~= 1  then
+                    getfenv().lookat = v:FindFirstChild("Forcefield")
+                    local speed = getfenv().speed or 250
+                    local plr = game.Players.LocalPlayer
+                    local chr = plr.Character
+                    local car = chr.Humanoid.SeatPart.Parent.Parent
+                    local carp = car.PrimaryPart
+                    local location = v:FindFirstChild("Forcefield").Position
+                    local dist = (carp.Position-location).magnitude
+                    print(dist/speed)
+                    local TweenService = game:GetService("TweenService")
+                    local TweenInfoToUse = TweenInfo.new(dist/speed, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 0, false, 0)
+
+                    local TweenValue = Instance.new("CFrameValue")
+                    TweenValue.Value = car:GetPrimaryPartCFrame()
+                    TweenValue.Changed:Connect(function()
+                    car:PivotTo(TweenValue.Value)
+                    end)
+                    local OnTween = TweenService:Create(TweenValue, TweenInfoToUse, {Value= CFrame.new(location)})
+                    OnTween:Play()
+                    OnTween.Completed:Wait()
+                end
+            end
+            until game:GetService("Players").LocalPlayer.PlayerGui.Score.Frame.Race.Visible == false or getfenv().urace == false or test == nil
+            carp.Velocity = Vector3.new(0,0,0)
+        end
+    end
 end)
