@@ -1,0 +1,80 @@
+-- Notification
+warn("Script Successfully Executed")
+
+-- Anti Afk
+warn("Anti Afk is On")
+game:GetService("Players").LocalPlayer.Idled:connect(function()
+    warn("Anti Afk ran")
+    game:GetService("VirtualUser"):CaptureController()
+    game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+end)
+
+-- Prevent certain methods from being called
+local mt = getrawmetatable(game);
+setreadonly(mt,false)
+local namecall = mt.__namecall
+mt.__namecall = newcclosure(function(self, ...)
+	local Method = getnamecallmethod()
+	local Args = {...}
+
+	if Method == 'FireServer' and self.Name == "TrackOffroadTimer" or Method == 'FireServer' and self.Name == "Report" or Method == 'InvokeServer' and self.Name == "QuitJob" and Args[1] == true or Method == 'InvokeServer' and self.Name == "QuitJob" and Args[1] == "teleport" then
+return;
+	end
+	return namecall(self, ...) 
+end)
+getfenv().grav = workspace.Gravity
+
+-- UI
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/ItzVickyyy/Scrpts/refs/heads/main/UI"))()
+
+
+
+
+
+
+
+
+
+
+-- Contracts
+local example = library:CreateWindow({
+    text = "Auto Contracts"
+})
+
+local function getcontracts()
+    local contracts = {}
+    for i, v in pairs(workspace.Contracts:GetChildren()) do
+        table.insert(contracts, v.Name)
+    end
+    return contracts
+end
+
+example:AddDropdown(getcontracts(), function(state)
+    -- print(state)
+    getfenv().contract = state
+end)
+
+example:AddToggle("Auto Complete Contract", function(state)
+    getfenv().contracta = (state and true or false)
+
+    while getfenv().contracta do
+        wait(3)
+        local plr =game:GetService("Players").LocalPlayer
+        local data = game:GetService("ReplicatedStorage").PlayerData[plr.Name]
+        local wood = data.Wood.Value
+        local steel = data.Steel.Value
+        warn("Wood Amount: "..wood)
+        warn("Steel Amount: "..steel)
+
+        game:GetService("ReplicatedStorage").Systems.Contracts.PrecalculateRoutes:InvokeServer()
+        wait(2)
+        game:GetService("ReplicatedStorage").Systems.Contracts.StartContract:InvokeServer(getfenv().contract)
+        print("Contract Started")
+        wait(10)
+        game:GetService("ReplicatedStorage").Systems.Contracts.PickupCargo:InvokeServer()
+        print("Got Cargo")
+        wait(65)
+        game:GetService("ReplicatedStorage").Systems.Contracts.DropoffCargo:InvokeServer()
+        warn("Completed")
+    end
+end)
