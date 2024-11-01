@@ -179,7 +179,7 @@ local example = library:CreateWindow({
     text = "Auto Deliver"
 })
 
-example:AddLabel("Distance to deliver", function(object, focus)
+example:AddLabel("Distance to Deliver", function(object, focus)
 end)
 
 example:AddBox("Minimum Distance", function(object, focus)
@@ -507,7 +507,7 @@ end)
 
 
 
--- Contracts
+-- Auto Contracts
 local example = library:CreateWindow({
     text = "Auto Contracts"
 })
@@ -521,7 +521,7 @@ local function getcontracts()
 end
 
 example:AddDropdown(getcontracts(), function(state)
-    print(state)
+    -- print(state)
     getfenv().contract = state
 end)
 
