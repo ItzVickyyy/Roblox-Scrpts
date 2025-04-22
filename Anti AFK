@@ -1,0 +1,21 @@
+print("Anti AFK Now Successfully Executed")
+wait(3)
+
+local VirtualUser = game:service("VirtualUser")
+game:service("Players").LocalPlayer.Idled:connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
+
+wait(3)
+print("Anti AFK Now Working")
+
+-- Looping print messages
+while true do
+    wait(1140) -- 19 minutes
+    print("19 minutes mark")
+    wait(30)   -- 19 minutes 30 seconds
+    print("19 minutes & 30 seconds mark")
+    wait(30)   -- 20 minutes
+    print("20 minutes mark")
+end
