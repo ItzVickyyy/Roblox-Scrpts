@@ -1,123 +1,98 @@
 print("Script Successfully Executed")
 
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local TestService = game:GetService("TestService")
+
+local TOGGLE_KEY = Enum.KeyCode.RightShift
+local isLowGraphics = false
+local Modified = {}
+local BATCH_SIZE = 25
+
 local ToDisable = {
 	Textures = true,
 	VisualEffects = true,
 	Parts = true,
 	Particles = true,
-	Sky = true,
-	Accessories = true,
-	Meshes = true,
-	Terrain = true,
-	GUIs = true
+	Sky = true
 }
 
 local ToEnable = {
 	FullBright = false
 }
 
-local TOGGLE_KEY = Enum.KeyCode.RightShift
+local function processObject(v)
+	local info = {}
 
-local UserInputService = game:GetService("UserInputService")
-local Lighting = game:GetService("Lighting")
-local Terrain = workspace:FindFirstChildOfClass("Terrain")
-local TestService = game:GetService("TestService")
+	if ToDisable.Parts and v:IsA("BasePart") then
+		info.Material = v.Material
+		info.Transparency = v.Transparency
+		info.CastShadow = v.CastShadow
 
-local isLowGraphics = false
-local Modified = {}
+		v.Material = Enum.Material.SmoothPlastic
+		v.Transparency = 0.8
+		v.CastShadow = false
+		Modified[v] = info
 
--- Async iterator using coroutine to avoid lag
-local function forEachDescendantAsync(callback)
-	local all = game:GetDescendants()
-	local batchSize = 100 -- number of objects per frame
+	elseif ToDisable.Particles and (v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Explosion") or v:IsA("Sparkles") or v:IsA("Fire")) then
+		info.Enabled = v.Enabled
+		v.Enabled = false
+		Modified[v] = info
 
-	for i = 1, #all, batchSize do
-		task.defer(function()
-			for j = i, math.min(i + batchSize - 1, #all) do
-				local obj = all[j]
-				pcall(callback, obj)
-			end
-		end)
-		task.wait()
+	elseif ToDisable.VisualEffects and (v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("DepthOfFieldEffect") or v:IsA("SunRaysEffect")) then
+		info.Enabled = v.Enabled
+		v.Enabled = false
+		Modified[v] = info
+
+	elseif ToDisable.Textures and (v:IsA("Decal") or v:IsA("Texture")) then
+		info.Texture = v.Texture
+		v.Texture = ""
+		Modified[v] = info
+
+	elseif ToDisable.Sky and v:IsA("Sky") then
+		info.SkyboxBk = v.SkyboxBk
+		info.SkyboxDn = v.SkyboxDn
+		info.SkyboxFt = v.SkyboxFt
+		info.SkyboxLf = v.SkyboxLf
+		info.SkyboxRt = v.SkyboxRt
+		info.SkyboxUp = v.SkyboxUp
+		v.SkyboxBk = ""
+		v.SkyboxDn = ""
+		v.SkyboxFt = ""
+		v.SkyboxLf = ""
+		v.SkyboxRt = ""
+		v.SkyboxUp = ""
+		Modified[v] = info
 	end
 end
 
-local function applyLowGraphics()
-	Modified = {} -- reset before applying
+local function applyLowGraphicsAsync()
+	local descendants = game:GetDescendants()
+	local i = 1
 
-	forEachDescendantAsync(function(v)
-		local info = {}
-
-		if ToDisable.Parts and v:IsA("BasePart") then
-			info.Material = v.Material
-			info.Transparency = v.Transparency
-			info.CastShadow = v.CastShadow
-
-			v.Material = Enum.Material.SmoothPlastic
-			v.Transparency = 0.8
-			v.CastShadow = false
-			Modified[v] = info
-
-		elseif ToDisable.Particles and (v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Explosion") or v:IsA("Sparkles") or v:IsA("Fire")) then
-			info.Enabled = v.Enabled
-			v.Enabled = false
-			Modified[v] = info
-
-		elseif ToDisable.VisualEffects and (v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("DepthOfFieldEffect") or v:IsA("SunRaysEffect")) then
-			info.Enabled = v.Enabled
-			v.Enabled = false
-			Modified[v] = info
-
-		elseif ToDisable.Textures and (v:IsA("Decal") or v:IsA("Texture")) then
-			info.Texture = v.Texture
-			v.Texture = ""
-			Modified[v] = info
-
-		elseif ToDisable.Sky and v:IsA("Sky") then
-			info.SkyboxBk = v.SkyboxBk
-			info.SkyboxDn = v.SkyboxDn
-			info.SkyboxFt = v.SkyboxFt
-			info.SkyboxLf = v.SkyboxLf
-			info.SkyboxRt = v.SkyboxRt
-			info.SkyboxUp = v.SkyboxUp
-			v.SkyboxBk = ""
-			v.SkyboxDn = ""
-			v.SkyboxFt = ""
-			v.SkyboxLf = ""
-			v.SkyboxRt = ""
-			v.SkyboxUp = ""
-			Modified[v] = info
-
-		elseif ToDisable.Accessories and (v:IsA("Accessory") or v:IsA("Hat")) then
-			if v.Parent then v:Destroy() end
-
-		elseif ToDisable.Meshes and v:IsA("MeshPart") then
-			info.Transparency = v.Transparency
-			v.Transparency = 1
-			Modified[v] = info
-
-		elseif ToDisable.GUIs and (v:IsA("BillboardGui") or v:IsA("SurfaceGui") or v:IsA("ScreenGui")) then
-			if v:IsA("ScreenGui") and v.ResetOnSpawn then return end
-			info.Enabled = v.Enabled
-			v.Enabled = false
-			Modified[v] = info
+	coroutine.wrap(function()
+		while i <= #descendants do
+			for j = 1, BATCH_SIZE do
+				local v = descendants[i]
+				if v then
+					pcall(processObject, v)
+				end
+				i += 1
+			end
+			task.wait()
 		end
-	end)
 
-	if ToDisable.Terrain and Terrain then
-		Terrain:Clear()
-	end
+		if ToEnable.FullBright then
+			Lighting.FogColor = Color3.new(1, 1, 1)
+			Lighting.FogStart = math.huge
+			Lighting.FogEnd = math.huge
+			Lighting.Ambient = Color3.new(1, 1, 1)
+			Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+			Lighting.Brightness = 5
+		end
 
-	if ToEnable.FullBright then
-		Lighting.FogColor = Color3.new(1, 1, 1)
-		Lighting.FogStart = math.huge
-		Lighting.FogEnd = math.huge
-		Lighting.Ambient = Color3.new(1, 1, 1)
-		Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
-		Lighting.Brightness = 5
-	end
-
-	TestService:Message("[LowGraphics] ON - Processing visuals...")
+		TestService:Message("[LowGraphics] ON - Done.")
+	end)()
 end
 
 local function restoreGraphics()
@@ -131,16 +106,15 @@ local function restoreGraphics()
 		end
 	end
 	Modified = {}
-	TestService:Message("[LowGraphics] OFF - Restored visuals.")
+	TestService:Message("[LowGraphics] OFF - Restored.")
 end
 
--- Key Toggle
 UserInputService.InputBegan:Connect(function(input, gp)
 	if gp then return end
 	if input.KeyCode == TOGGLE_KEY then
 		isLowGraphics = not isLowGraphics
 		if isLowGraphics then
-			applyLowGraphics()
+			applyLowGraphicsAsync()
 		else
 			restoreGraphics()
 		end
