@@ -1,67 +1,40 @@
 print("Script Successfully Executed")
 
 local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
 
 local TOGGLE_KEY = Enum.KeyCode.RightShift
 local localPlayer = Players.LocalPlayer
 local Character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
-local TOGGLE_INTERVAL = 3 -- seconds
-local SCAN_RADIUS = 20
 local isEnabled = false
-local lastScan = 0
-local VisibleParts = {}
+local SCAN_RADIUS = 20 -- 20 studs range
 
--- Hide all parts
-local function hideAll()
+local function hideFarObjects()
 	for _, part in pairs(Workspace:GetDescendants()) do
 		if part:IsA("BasePart") then
-			part.LocalTransparencyModifier = 1
+			-- Hide parts that are further than the SCAN_RADIUS
+			local distance = (part.Position - HumanoidRootPart.Position).Magnitude
+			if distance > SCAN_RADIUS then
+				part.LocalTransparencyModifier = 1
+			end
 		end
 	end
 end
 
--- Show only parts near you
-local function showNearby()
-	local region = Region3.new(
-		HumanoidRootPart.Position - Vector3.new(SCAN_RADIUS, SCAN_RADIUS, SCAN_RADIUS),
-		HumanoidRootPart.Position + Vector3.new(SCAN_RADIUS, SCAN_RADIUS, SCAN_RADIUS)
-	)
-
-	local parts = Workspace:FindPartsInRegion3(region, Character, math.huge)
-	local shown = 0
-
-	for _, part in ipairs(parts) do
+local function showNearbyObjects()
+	for _, part in pairs(Workspace:GetDescendants()) do
 		if part:IsA("BasePart") then
-			part.LocalTransparencyModifier = 0
-			VisibleParts[part] = true
-			shown += 1
+			-- Show parts that are within the SCAN_RADIUS
+			local distance = (part.Position - HumanoidRootPart.Position).Magnitude
+			if distance <= SCAN_RADIUS then
+				part.LocalTransparencyModifier = 0
+			end
 		end
 	end
-end
-
--- Reset visibility
-local function resetVisibility()
-	for part, _ in pairs(VisibleParts) do
-		if part and part:IsA("BasePart") then
-			part.LocalTransparencyModifier = 0
-		end
-	end
-	VisibleParts = {}
-end
-
-local function enableEffect()
-	hideAll()
-	showNearby()
-end
-
-local function disableEffect()
-	resetVisibility()
 end
 
 UIS.InputBegan:Connect(function(input, gameProcessed)
@@ -69,22 +42,9 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
 	if input.KeyCode == TOGGLE_KEY then
 		isEnabled = not isEnabled
 		if isEnabled then
-			enableEffect()
+			showNearbyObjects()  -- Only show within 20 studs
 		else
-			disableEffect()
+			hideFarObjects()  -- Hide everything beyond 20 studs
 		end
-	end
-end)
-
--- Rescan only every few seconds while enabled
-RunService.Stepped:Connect(function(_, dt)
-	if not isEnabled then return end
-
-	lastScan += dt
-	if lastScan >= TOGGLE_INTERVAL then
-		hideAll()
-		resetVisibility()
-		showNearby()
-		lastScan = 0
 	end
 end)
