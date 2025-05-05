@@ -1,83 +1,90 @@
 print("Script Successfully Executed")
 
 local UIS = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 
 local TOGGLE_KEY = Enum.KeyCode.RightShift
 local localPlayer = Players.LocalPlayer
 local Character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
+local TOGGLE_INTERVAL = 3 -- seconds
+local SCAN_RADIUS = 20
 local isEnabled = false
-local DistanceLimit = 80  -- Only show objects within 80 studs
-local OriginalProps = {}
+local lastScan = 0
+local VisibleParts = {}
 
--- Hide distant parts
-local function isFar(object)
-	if not object:IsA("BasePart") then return false end
-	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return false end
-
-	local dist = (object.Position - Character.HumanoidRootPart.Position).Magnitude
-	return dist > DistanceLimit
-end
-
-local function applyViewLimiter()
-	-- Apply heavy fog
-	Lighting.FogStart = 0
-	Lighting.FogEnd = DistanceLimit
-	Lighting.FogColor = Color3.new(0, 0, 0)
-	Lighting.Brightness = 1
-
-	-- Hide far parts gradually
-	RunService:BindToRenderStep("LimitView", Enum.RenderPriority.Camera.Value + 1, function()
-		for _, v in pairs(workspace:GetDescendants()) do
-			if v:IsA("BasePart") and v.Transparency < 1 then
-				if isFar(v) then
-					if not OriginalProps[v] then
-						OriginalProps[v] = {
-							Transparency = v.Transparency,
-							CastShadow = v.CastShadow
-						}
-					end
-					v.Transparency = 1
-					v.CastShadow = false
-				elseif OriginalProps[v] then
-					v.Transparency = OriginalProps[v].Transparency
-					v.CastShadow = OriginalProps[v].CastShadow
-					OriginalProps[v] = nil
-				end
-			end
-		end
-	end)
-end
-
-local function restoreView()
-	RunService:UnbindFromRenderStep("LimitView")
-	for v, props in pairs(OriginalProps) do
-		if v and v:IsA("BasePart") then
-			v.Transparency = props.Transparency
-			v.CastShadow = props.CastShadow
+-- Hide all parts
+local function hideAll()
+	for _, part in pairs(Workspace:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.LocalTransparencyModifier = 1
 		end
 	end
-	OriginalProps = {}
-
-	-- Reset fog
-	Lighting.FogStart = 0
-	Lighting.FogEnd = 100000
-	Lighting.FogColor = Color3.new(1, 1, 1)
-	Lighting.Brightness = 2
 end
 
-UIS.InputBegan:Connect(function(input, gp)
-	if gp then return end
+-- Show only parts near you
+local function showNearby()
+	local region = Region3.new(
+		HumanoidRootPart.Position - Vector3.new(SCAN_RADIUS, SCAN_RADIUS, SCAN_RADIUS),
+		HumanoidRootPart.Position + Vector3.new(SCAN_RADIUS, SCAN_RADIUS, SCAN_RADIUS)
+	)
+
+	local parts = Workspace:FindPartsInRegion3(region, Character, math.huge)
+	local shown = 0
+
+	for _, part in ipairs(parts) do
+		if part:IsA("BasePart") then
+			part.LocalTransparencyModifier = 0
+			VisibleParts[part] = true
+			shown += 1
+		end
+	end
+end
+
+-- Reset visibility
+local function resetVisibility()
+	for part, _ in pairs(VisibleParts) do
+		if part and part:IsA("BasePart") then
+			part.LocalTransparencyModifier = 0
+		end
+	end
+	VisibleParts = {}
+end
+
+local function enableEffect()
+	hideAll()
+	showNearby()
+end
+
+local function disableEffect()
+	resetVisibility()
+end
+
+UIS.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
 	if input.KeyCode == TOGGLE_KEY then
 		isEnabled = not isEnabled
 		if isEnabled then
-			applyViewLimiter()
+			enableEffect()
 		else
-			restoreView()
+			disableEffect()
 		end
+	end
+end)
+
+-- Rescan only every few seconds while enabled
+RunService.Stepped:Connect(function(_, dt)
+	if not isEnabled then return end
+
+	lastScan += dt
+	if lastScan >= TOGGLE_INTERVAL then
+		hideAll()
+		resetVisibility()
+		showNearby()
+		lastScan = 0
 	end
 end)
