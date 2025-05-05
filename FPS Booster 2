@@ -1,3 +1,5 @@
+print("Successfully executed")
+
 -- SETTINGS
 local ToDisable = {
 	Textures = true,
