@@ -11,7 +11,7 @@ local Character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
 local isEnabled = false
-local SCAN_RADIUS = 20 -- 20 studs range
+local SCAN_RADIUS = 5 -- 20 studs range
 
 local function hideFarObjects()
 	for _, part in pairs(Workspace:GetDescendants()) do
