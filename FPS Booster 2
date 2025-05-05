@@ -1,6 +1,5 @@
 print("Successfully executed")
 
--- SETTINGS
 local ToDisable = {
 	Textures = true,
 	VisualEffects = true,
@@ -19,60 +18,61 @@ local ToEnable = {
 
 local TOGGLE_KEY = Enum.KeyCode.RightShift
 
--- SERVICES
 local Lighting = game:GetService("Lighting")
-local TestService = game:GetService("TestService")
-local Terrain = workspace:FindFirstChildOfClass("Terrain")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
+local Terrain = workspace:FindFirstChildOfClass("Terrain")
+local TestService = game:GetService("TestService")
 
--- CACHES
 local isLowGraphics = false
-local ModifiedObjects = {}
+local Modified = {}
 
--- FUNCTIONS
+-- Save & Apply Low Graphics
 local function applyLowGraphics()
-	local count = 0
 	for _, v in ipairs(game:GetDescendants()) do
+		local info = {}
+
 		if ToDisable.Parts and v:IsA("BasePart") then
+			info.Material = v.Material
+			info.Transparency = v.Transparency
+			info.CastShadow = v.CastShadow
+
 			v.Material = Enum.Material.SmoothPlastic
 			v.Transparency = 0.8
 			v.CastShadow = false
-			table.insert(ModifiedObjects, v)
-			count += 1
+
+			Modified[v] = info
 
 		elseif ToDisable.Particles and (v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Explosion") or v:IsA("Sparkles") or v:IsA("Fire")) then
+			info.Enabled = v.Enabled
 			v.Enabled = false
-			table.insert(ModifiedObjects, v)
-			count += 1
+			Modified[v] = info
 
 		elseif ToDisable.VisualEffects and (v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("DepthOfFieldEffect") or v:IsA("SunRaysEffect")) then
+			info.Enabled = v.Enabled
 			v.Enabled = false
-			table.insert(ModifiedObjects, v)
-			count += 1
+			Modified[v] = info
 
 		elseif ToDisable.Textures and (v:IsA("Decal") or v:IsA("Texture")) then
+			info.Texture = v.Texture
 			v.Texture = ""
-			table.insert(ModifiedObjects, v)
-			count += 1
+			Modified[v] = info
 
 		elseif ToDisable.Sky and v:IsA("Sky") then
 			v:Destroy()
-			count += 1
 
 		elseif ToDisable.Accessories and (v:IsA("Accessory") or v:IsA("Hat")) then
 			v:Destroy()
-			count += 1
 
 		elseif ToDisable.Meshes and v:IsA("MeshPart") then
+			info.Transparency = v.Transparency
 			v.Transparency = 1
-			table.insert(ModifiedObjects, v)
-			count += 1
+			Modified[v] = info
 
 		elseif ToDisable.GUIs and (v:IsA("BillboardGui") or v:IsA("SurfaceGui") or v:IsA("ScreenGui")) then
+			if v:IsA("ScreenGui") and v.ResetOnSpawn then continue end
+			info.Enabled = v.Enabled
 			v.Enabled = false
-			table.insert(ModifiedObjects, v)
-			count += 1
+			Modified[v] = info
 		end
 	end
 
@@ -87,46 +87,35 @@ local function applyLowGraphics()
 		Lighting.Ambient = Color3.new(1, 1, 1)
 		Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
 		Lighting.Brightness = 5
-		Lighting.ColorShift_Top = Color3.new(1, 1, 1)
-		Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
 	end
 
-	TestService:Message("[LowGraphics] Enabled - "..count.." items modified.")
+	TestService:Message("[LowGraphics] ON - Modified " .. tostring(#Modified))
 end
 
-local function resetGraphics()
-	for _, v in ipairs(ModifiedObjects) do
-		pcall(function()
-			if v:IsA("BasePart") then
-				v.Transparency = 0
-				v.Material = Enum.Material.Plastic
-				v.CastShadow = true
-			elseif v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Explosion") or v:IsA("Sparkles") or v:IsA("Fire") then
-				v.Enabled = true
-			elseif v:IsA("Decal") or v:IsA("Texture") then
-				-- cannot restore original texture if it was wiped
-			elseif v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("DepthOfFieldEffect") or v:IsA("SunRaysEffect") then
-				v.Enabled = true
-			elseif v:IsA("MeshPart") then
-				v.Transparency = 0
-			elseif v:IsA("BillboardGui") or v:IsA("SurfaceGui") or v:IsA("ScreenGui") then
-				v.Enabled = true
-			end
-		end)
+-- Restore Original Graphics
+local function restoreGraphics()
+	for obj, info in pairs(Modified) do
+		if obj and obj.Parent then
+			pcall(function()
+				for prop, value in pairs(info) do
+					obj[prop] = value
+				end
+			end)
+		end
 	end
-	ModifiedObjects = {}
-	TestService:Message("[LowGraphics] Disabled - Reset visuals.")
+	Modified = {}
+	TestService:Message("[LowGraphics] OFF - Restored visuals.")
 end
 
--- TOGGLE LOGIC
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
+-- Toggle with Key
+UserInputService.InputBegan:Connect(function(input, gp)
+	if gp then return end
 	if input.KeyCode == TOGGLE_KEY then
 		isLowGraphics = not isLowGraphics
 		if isLowGraphics then
 			applyLowGraphics()
 		else
-			resetGraphics()
+			restoreGraphics()
 		end
 	end
 end)
