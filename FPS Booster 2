@@ -1,122 +1,83 @@
 print("Script Successfully Executed")
 
-local UserInputService = game:GetService("UserInputService")
+local UIS = game:GetService("UserInputService")
+local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
-local TestService = game:GetService("TestService")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
 
 local TOGGLE_KEY = Enum.KeyCode.RightShift
-local isLowGraphics = false
-local Modified = {}
-local BATCH_SIZE = 25
+local localPlayer = Players.LocalPlayer
+local Character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
 
-local ToDisable = {
-	Textures = true,
-	VisualEffects = true,
-	Parts = true,
-	Particles = true,
-	Sky = true
-}
+local isEnabled = false
+local DistanceLimit = 80  -- Only show objects within 80 studs
+local OriginalProps = {}
 
-local ToEnable = {
-	FullBright = false
-}
+-- Hide distant parts
+local function isFar(object)
+	if not object:IsA("BasePart") then return false end
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return false end
 
-local function processObject(v)
-	local info = {}
-
-	if ToDisable.Parts and v:IsA("BasePart") then
-		info.Material = v.Material
-		info.Transparency = v.Transparency
-		info.CastShadow = v.CastShadow
-
-		v.Material = Enum.Material.SmoothPlastic
-		v.Transparency = 0.8
-		v.CastShadow = false
-		Modified[v] = info
-
-	elseif ToDisable.Particles and (v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Explosion") or v:IsA("Sparkles") or v:IsA("Fire")) then
-		info.Enabled = v.Enabled
-		v.Enabled = false
-		Modified[v] = info
-
-	elseif ToDisable.VisualEffects and (v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("DepthOfFieldEffect") or v:IsA("SunRaysEffect")) then
-		info.Enabled = v.Enabled
-		v.Enabled = false
-		Modified[v] = info
-
-	elseif ToDisable.Textures and (v:IsA("Decal") or v:IsA("Texture")) then
-		info.Texture = v.Texture
-		v.Texture = ""
-		Modified[v] = info
-
-	elseif ToDisable.Sky and v:IsA("Sky") then
-		info.SkyboxBk = v.SkyboxBk
-		info.SkyboxDn = v.SkyboxDn
-		info.SkyboxFt = v.SkyboxFt
-		info.SkyboxLf = v.SkyboxLf
-		info.SkyboxRt = v.SkyboxRt
-		info.SkyboxUp = v.SkyboxUp
-		v.SkyboxBk = ""
-		v.SkyboxDn = ""
-		v.SkyboxFt = ""
-		v.SkyboxLf = ""
-		v.SkyboxRt = ""
-		v.SkyboxUp = ""
-		Modified[v] = info
-	end
+	local dist = (object.Position - Character.HumanoidRootPart.Position).Magnitude
+	return dist > DistanceLimit
 end
 
-local function applyLowGraphicsAsync()
-	local descendants = game:GetDescendants()
-	local i = 1
+local function applyViewLimiter()
+	-- Apply heavy fog
+	Lighting.FogStart = 0
+	Lighting.FogEnd = DistanceLimit
+	Lighting.FogColor = Color3.new(0, 0, 0)
+	Lighting.Brightness = 1
 
-	coroutine.wrap(function()
-		while i <= #descendants do
-			for j = 1, BATCH_SIZE do
-				local v = descendants[i]
-				if v then
-					pcall(processObject, v)
+	-- Hide far parts gradually
+	RunService:BindToRenderStep("LimitView", Enum.RenderPriority.Camera.Value + 1, function()
+		for _, v in pairs(workspace:GetDescendants()) do
+			if v:IsA("BasePart") and v.Transparency < 1 then
+				if isFar(v) then
+					if not OriginalProps[v] then
+						OriginalProps[v] = {
+							Transparency = v.Transparency,
+							CastShadow = v.CastShadow
+						}
+					end
+					v.Transparency = 1
+					v.CastShadow = false
+				elseif OriginalProps[v] then
+					v.Transparency = OriginalProps[v].Transparency
+					v.CastShadow = OriginalProps[v].CastShadow
+					OriginalProps[v] = nil
 				end
-				i += 1
 			end
-			task.wait()
 		end
-
-		if ToEnable.FullBright then
-			Lighting.FogColor = Color3.new(1, 1, 1)
-			Lighting.FogStart = math.huge
-			Lighting.FogEnd = math.huge
-			Lighting.Ambient = Color3.new(1, 1, 1)
-			Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
-			Lighting.Brightness = 5
-		end
-
-		TestService:Message("[LowGraphics] ON - Done.")
-	end)()
+	end)
 end
 
-local function restoreGraphics()
-	for obj, info in pairs(Modified) do
-		if obj and obj.Parent then
-			pcall(function()
-				for prop, value in pairs(info) do
-					obj[prop] = value
-				end
-			end)
+local function restoreView()
+	RunService:UnbindFromRenderStep("LimitView")
+	for v, props in pairs(OriginalProps) do
+		if v and v:IsA("BasePart") then
+			v.Transparency = props.Transparency
+			v.CastShadow = props.CastShadow
 		end
 	end
-	Modified = {}
-	TestService:Message("[LowGraphics] OFF - Restored.")
+	OriginalProps = {}
+
+	-- Reset fog
+	Lighting.FogStart = 0
+	Lighting.FogEnd = 100000
+	Lighting.FogColor = Color3.new(1, 1, 1)
+	Lighting.Brightness = 2
 end
 
-UserInputService.InputBegan:Connect(function(input, gp)
+UIS.InputBegan:Connect(function(input, gp)
 	if gp then return end
 	if input.KeyCode == TOGGLE_KEY then
-		isLowGraphics = not isLowGraphics
-		if isLowGraphics then
-			applyLowGraphicsAsync()
+		isEnabled = not isEnabled
+		if isEnabled then
+			applyViewLimiter()
 		else
-			restoreGraphics()
+			restoreView()
 		end
 	end
 end)
