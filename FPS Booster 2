@@ -2,49 +2,38 @@ print("Script Successfully Executed")
 
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 
 local TOGGLE_KEY = Enum.KeyCode.RightShift
-local localPlayer = Players.LocalPlayer
-local Character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local player = Players.LocalPlayer
+local Character = player.Character or player.CharacterAdded:Wait()
+local Root = Character:WaitForChild("HumanoidRootPart")
 
-local isEnabled = false
-local SCAN_RADIUS = 5 -- 20 studs range
+local isFiltered = false
+local SCAN_RADIUS = 10
+local visibleParts = {}
 
-local function hideFarObjects()
-	for _, part in pairs(Workspace:GetDescendants()) do
-		if part:IsA("BasePart") then
-			-- Hide parts that are further than the SCAN_RADIUS
-			local distance = (part.Position - HumanoidRootPart.Position).Magnitude
-			if distance > SCAN_RADIUS then
+local function updateVisibility(limitToRadius)
+	local origin = Root.Position
+	local allParts = Workspace:GetDescendants()
+
+	for i = 1, #allParts do
+		local part = allParts[i]
+		if part:IsA("BasePart") and part:IsDescendantOf(Workspace) and not part:IsDescendantOf(Character) then
+			local dist = (part.Position - origin).Magnitude
+
+			if limitToRadius and dist > SCAN_RADIUS then
 				part.LocalTransparencyModifier = 1
-			end
-		end
-	end
-end
-
-local function showNearbyObjects()
-	for _, part in pairs(Workspace:GetDescendants()) do
-		if part:IsA("BasePart") then
-			-- Show parts that are within the SCAN_RADIUS
-			local distance = (part.Position - HumanoidRootPart.Position).Magnitude
-			if distance <= SCAN_RADIUS then
+			else
 				part.LocalTransparencyModifier = 0
 			end
 		end
 	end
 end
 
-UIS.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.KeyCode == TOGGLE_KEY then
-		isEnabled = not isEnabled
-		if isEnabled then
-			showNearbyObjects()  -- Only show within 20 studs
-		else
-			hideFarObjects()  -- Hide everything beyond 20 studs
-		end
-	end
+UIS.InputBegan:Connect(function(input, processed)
+	if processed or input.KeyCode ~= TOGGLE_KEY then return end
+
+	isFiltered = not isFiltered
+	updateVisibility(isFiltered)
 end)
